@@ -4,30 +4,77 @@ window.addEventListener('load', function(){
     canvas.width = 800;
     canvas.height = 800;
 
-    ctx.fillStyle = 'white';
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'white';
+    class InputHandler {
+        constructor(game) {
+            this.game = game;
+            window.addEventListener('keydown', (e)=>{
+                if ((   (e.key === 'ArrowUp') ||
+                        (e.key === 'ArrowLeft') ||
+                        (e.key === 'ArrowRight') ||
+                        (e.key === ' ')                
+                ) && this.game.keys.indexOf(e.key) === -1) {
+                    this.game.keys.push(e.key)
+                }
+            })
+            window.addEventListener('keyup', (e)=>{
+                if(this.game.keys.indexOf(e.key) > -1 ) {
+                    this.game.keys.splice(this.game.keys.indexOf(e.key), 1)
+                }
+            })
+        }
+    }
 
     class Player {
         constructor(game){
             this.game = game;
-            this.collisionX = this.game.width * 0.5;
-            this.collisionY = this.game.height * 0.5;
-            this.collisionRadius = 30;
+            this.bodyimage = document.getElementById('spaceship');
+
+            this.turnSpeed = 3;
+            this.acceleration = 2;
+            this.friction = 0.99;
+
+            this.x = this.game.width * 0.5 - this.bodyimage.width * 0.5;
+            this.y = this.game.height * 0.5 - this.bodyimage.height * 0.5;
+            this.thrust = { x:0, y:0 };
+            this.angle = 0;
+            this.rotation = 0;
+
         }
 
         draw(context){
-            context.beginPath();
-            context.arc(this.collisionX,this.collisionY,this.collisionRadius,0,Math.PI * 2);
-            context.save();
-            context.globalAlpha = 0.5;
-            context.fill();
-            context.restore();
-            context.stroke();
+            context.save()
+            context.translate(this.x + this.bodyimage.width * 0.5, this.y + this.bodyimage.height * 0.5)
+            context.rotate(this.angle);
+            context.drawImage(this.bodyimage, - this.bodyimage.width * 0.5, - this.bodyimage.height * 0.5, 50,50)
+            context.restore()
         }
         update(){
-           this.collisionX = this.game.mouse.x; 
-           this.collisionY = this.game.mouse.y; 
+            this.rotation = 0;
+            this.thrust.x = this.thrust.x * this.friction; 
+            this.thrust.y = this.thrust.y * this.friction; 
+
+            if (this.x > this.game.width) this.x = 0 - this.bodyimage.width;
+            if (this.x + this.bodyimage.width < 0) this.x = this.game.width;
+            if (this.y > this.game.height) this.y = 0 - this.bodyimage.height;
+            if (this.y + this.bodyimage.height < 0) this.y = this.game.height;
+
+            if (this.game.keys.indexOf('ArrowUp') > -1){
+                this.thrust.x = this.acceleration * Math.cos(this.angle);
+                this.thrust.y = this.acceleration * Math.sin(this.angle);
+            }
+            if (this.game.keys.indexOf('ArrowLeft') > -1){
+                this.rotation = -this.turnSpeed /180 * Math.PI;
+            }
+            if (this.game.keys.indexOf('ArrowRight') > -1){
+                this.rotation = this.turnSpeed /180 * Math.PI;
+            }
+            if ( this.game.keys.indexOf(' ') > -1) {
+                console.log('Pew Pew');
+            }
+            this.angle += this.rotation;
+            this.x += this.thrust.x;
+            this.y += this.thrust.y;
+
         }
     }
 
@@ -37,40 +84,26 @@ window.addEventListener('load', function(){
             this.width = this.canvas.width;
             this.height = this.canvas.height;
             this.player = new Player(this)
-            this.mouse = {
-                x: this.width * 0.5,
-                y: this.height * 0.5,
-                pressed: false
-            }
-
-            // event listeners
-            canvas.addEventListener('mousedown', (e)=>{
-                this.mouse.x = e.offsetX;
-                this.mouse.y = e.offsetY;
-                this.mouse.pressed = true;
-            })
-            canvas.addEventListener('mouseup', (e)=>{
-                this.mouse.x = e.offsetX;
-                this.mouse.y = e.offsetY;
-                this.mouse.pressed = false;
-            })
-            canvas.addEventListener('mousemove', (e)=>{
-                this.mouse.x = e.offsetX;
-                this.mouse.y = e.offsetY;
-            })
+            this.input = new InputHandler(this)
+            this.keys = [];
         }
-        render(context){
-            this.player.draw(context)
+        update(){
             this.player.update();
         }
+        draw(context){
+            this.player.draw(context)
+        }
     }
+
+   
 
     const game = new Game(canvas)
     
 
     function animate(){
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        game.render(ctx);
+        game.update();
+        game.draw(ctx);
         requestAnimationFrame(animate)
     }
     animate();
