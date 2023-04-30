@@ -1,7 +1,7 @@
 window.addEventListener('load', function(){
     const canvas = this.document.getElementById('myCanvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = 800;
+    canvas.width = 1200;
     canvas.height = 800;
 
     class InputHandler {
@@ -30,7 +30,7 @@ window.addEventListener('load', function(){
             this.bodyimage = document.getElementById('spaceship');
 
             this.turnSpeed = 3;
-            this.acceleration = 2;
+            this.acceleration = 4;
             this.friction = 0.99;
 
             this.x = this.game.width * 0.5 - this.bodyimage.width * 0.5;
@@ -45,7 +45,7 @@ window.addEventListener('load', function(){
             context.save()
             context.translate(this.x + this.bodyimage.width * 0.5, this.y + this.bodyimage.height * 0.5)
             context.rotate(this.angle);
-            context.drawImage(this.bodyimage, - this.bodyimage.width * 0.5, - this.bodyimage.height * 0.5, 50,50)
+            context.drawImage(this.bodyimage, - this.bodyimage.width * 0.5, - this.bodyimage.height * 0.5, 100,100)
             context.restore()
         }
         update(){
