@@ -117,6 +117,55 @@ window.addEventListener('load', function(){
         }
     }
 
+    class Explosion {
+        constructor(game){
+            this.game = game;
+            this.image = document.getElementById('explosion');
+            this.x = 0;
+            this.y = 0;
+            this.speed = 0;
+            this.spriteWidth = 300;
+            this.spriteHeight = 300;
+            this.free = true;
+            this.frameX = 0;
+            this.frameY = Math.floor(Math.random() * 3);
+            this.maxFrame = 22;
+            this.animationTimer = 0;
+            this.animationInterval = 1000/35;
+        }
+        draw(context){
+            if(!this.free){
+                context.drawImage(this.image, 
+                this.spriteWidth * this.frameX, this.spriteHeight * this.frameY, 
+                this.spriteWidth, this.spriteHeight, 
+                this.x - this.spriteWidth * 0.5, this.y - this.spriteHeight * 0.5, 
+                this.spriteWidth, this.spriteHeight)
+            }
+
+        }
+        update(deltaTime){
+            if(!this.free){
+                if(this.animationTimer > this.animationInterval){
+                    this.frameX++;
+                    this.animationTimer = 0;
+                    if (this.frameX > this.maxFrame) this.reset();
+                } else {
+                    this.animationTimer += deltaTime;
+                }
+            }
+        }
+        reset(){
+            this.free = true;
+        }
+        start(x, y){
+            this.free = false;
+            this.x = x;
+            this.y = y;
+            this.frameX = 0;
+            this.frameY = Math.floor(Math.random() * 3);
+        }
+    }
+
     class Game {
         constructor(canvas){
             this.canvas = canvas;
@@ -125,19 +174,69 @@ window.addEventListener('load', function(){
             this.player = new Player(this)
             this.input = new InputHandler(this)
             this.asteroidPool = [];
-            this.max = 5;
+            
+            this.maxAsteroids = 5;
             this.keys = [];
             this.createAsteroidPool();
+
+            this.mouse = {
+                x: 0,
+                y: 0,
+                radius: 2
+            }
+
+            this.explosionPool = [];
+            this.maxExplosions = 5;
+            this.createExplosionPool();
+
+            window.addEventListener('click', (e)=>{
+                // add explosion at click coordonates
+                this.mouse.x = e.offsetX;
+                this.mouse.y = e.offsetY;
+                this.asteroidPool.forEach(asteroid => {
+                    if (this.checkCollision(asteroid, this.mouse)){
+                        const explosion = this.getExplosion();
+                        if (explosion) explosion.start(this.mouse.x, this.mouse.y);
+                    }
+                })
+            })
         }
         createAsteroidPool(){
-            for (let i=0; i< this.max; i++){
+            for (let i=0; i< this.maxAsteroids; i++){
                 this.asteroidPool.push(new Asteroid(this));
             }
         }
-        render(context){
+        createExplosionPool(){
+            for (let i=0; i< this.maxExplosions; i++){
+                this.explosionPool.push(new Explosion(this));
+            }
+        }
+        getAsteroid(){
+
+        }
+        getExplosion(){
+            for (let i = 0; i < this.explosionPool.length; i++) {
+                if (this.explosionPool[i].free){
+                    return this.explosionPool[i]
+                }
+            }
+        }
+        checkCollision(a, b) {
+            const sumOfRadius = a.radius + b.radius;
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const distance = Math.hypot(dx, dy);
+            return distance < sumOfRadius;
+        }
+
+        render(context, deltaTime){
             this.asteroidPool.forEach(asteroid => {
                 asteroid.draw(context);
                 asteroid.update();
+            });
+            this.explosionPool.forEach(explosion => {
+                explosion.draw(context);
+                explosion.update(deltaTime);
             });
             this.player.draw(context);
             this.player.update();
@@ -148,12 +247,14 @@ window.addEventListener('load', function(){
 
     const game = new Game(canvas)
     
-
-    function animate(){
+    let lastTime = 0;
+    function animate(timeStamp){
+        const deltaTime = timeStamp - lastTime;
+        lastTime = timeStamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        game.render(ctx);
+        game.render(ctx, deltaTime);
         requestAnimationFrame(animate)
     }
-    animate();
+    animate(0);
     
 })
