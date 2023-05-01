@@ -5,6 +5,8 @@ window.addEventListener('load', function(){
     canvas.height = 800;
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 3;
+    ctx.font = "20px Helvetica";
+    ctx.fillStyle = 'white';
 
     class InputHandler {
         constructor(game) {
@@ -32,7 +34,7 @@ window.addEventListener('load', function(){
             this.bodyimage = document.getElementById('spaceship');
 
             this.turnSpeed = 3;
-            this.acceleration = 4;
+            this.acceleration = 2;
             this.friction = 0.99;
 
             this.x = this.game.width * 0.5;
@@ -86,34 +88,50 @@ window.addEventListener('load', function(){
     class Asteroid {
         constructor(game) {
             this.game = game;
+            this.image = document.getElementById('asteroid');
+
             this.radius = 60;
             this.x = Math.random() * this.game.width;
             this.y = Math.random() * this.game.height;
-            this.image = document.getElementById('asteroid');
+            
             this.spriteWidth = 120;
             this.spriteHeight = 122;
+
             this.speed = 1;
+            this.free = true;
             this.rotationAngle = 0;
             this.directionAngle= Math.random() * Math.PI * 2;
             this.va = Math.random() * 0.04 - 0.02;
         }
         draw(context){
-            context.save();
-            context.translate(this.x, this.y)
-            context.rotate(this.rotationAngle);
-            context.drawImage(this.image, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight *0.5, this.spriteWidth, this.spriteHeight);
-            context.restore();
+            if(!this.free){
+                context.save();
+                context.translate(this.x, this.y)
+                context.rotate(this.rotationAngle);
+                context.drawImage(this.image, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight *0.5, this.spriteWidth, this.spriteHeight);
+                context.restore();
+            }
         }
         update(){
-            this.rotationAngle += this.va;
-            // Sortie de l'écran, rerentre de l'autre côté
-            if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
-            if (this.x + this.spriteWidth * 0.5 < 0) this.x = this.game.width + this.spriteWidth * 0.5;
-            if (this.y > this.game.height + this.spriteHeight * 0.5) this.y = 0 - this.spriteHeight *0.5;
-            if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
-
-            this.x += this.speed * Math.cos(this.directionAngle);
-            this.y += this.speed * Math.sin(this.directionAngle);
+            if (!this.free){
+                this.rotationAngle += this.va;
+                // Sortie de l'écran, rerentre de l'autre côté
+                if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
+                if (this.x + this.spriteWidth * 0.5 < 0) this.x = this.game.width + this.spriteWidth * 0.5;
+                if (this.y > this.game.height + this.spriteHeight * 0.5) this.y = 0 - this.spriteHeight *0.5;
+                if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
+    
+                this.x += this.speed * Math.cos(this.directionAngle);
+                this.y += this.speed * Math.sin(this.directionAngle);
+            }
+        }
+        reset(){
+            this.free = true;
+        }
+        start(){
+            this.free = false;
+            this.x = Math.random() * this.game.width;
+            this.y = Math.random() * this.game.height;
         }
     }
 
@@ -124,6 +142,7 @@ window.addEventListener('load', function(){
             this.x = 0;
             this.y = 0;
             this.speed = 0;
+            this.directionAngle= 0;
             this.spriteWidth = 300;
             this.spriteHeight = 300;
             this.free = true;
@@ -145,6 +164,8 @@ window.addEventListener('load', function(){
         }
         update(deltaTime){
             if(!this.free){
+                this.x += this.speed * Math.cos(this.directionAngle);
+                this.y += this.speed * Math.sin(this.directionAngle);
                 if(this.animationTimer > this.animationInterval){
                     this.frameX++;
                     this.animationTimer = 0;
@@ -157,12 +178,14 @@ window.addEventListener('load', function(){
         reset(){
             this.free = true;
         }
-        start(x, y){
+        start(x, y, asteroSpeed, asteroDirectionAngle){
             this.free = false;
             this.x = x;
             this.y = y;
             this.frameX = 0;
             this.frameY = Math.floor(Math.random() * 3);
+            this.speed = asteroSpeed;
+            this.directionAngle = asteroDirectionAngle;
         }
     }
 
@@ -173,11 +196,15 @@ window.addEventListener('load', function(){
             this.height = this.canvas.height;
             this.player = new Player(this)
             this.input = new InputHandler(this)
+
+            this.score = 0;
             this.asteroidPool = [];
             
-            this.maxAsteroids = 5;
+            this.maxAsteroids = 10;
+
             this.keys = [];
             this.createAsteroidPool();
+            this.init();
 
             this.mouse = {
                 x: 0,
@@ -194,9 +221,11 @@ window.addEventListener('load', function(){
                 this.mouse.x = e.offsetX;
                 this.mouse.y = e.offsetY;
                 this.asteroidPool.forEach(asteroid => {
-                    if (this.checkCollision(asteroid, this.mouse)){
+                    if (!asteroid.free && this.checkCollision(asteroid, this.mouse)){
                         const explosion = this.getExplosion();
-                        if (explosion) explosion.start(this.mouse.x, this.mouse.y);
+                        if (explosion) explosion.start(asteroid.x, asteroid.y, asteroid.speed * 0.5, asteroid.directionAngle);
+                        asteroid.reset()
+                        this.score++
                     }
                 })
             })
@@ -212,7 +241,17 @@ window.addEventListener('load', function(){
             }
         }
         getAsteroid(){
-
+            for (let i=0; i < this.asteroidPool.length; i ++) {
+                if (this.asteroidPool[i].free) {
+                    return this.asteroidPool[i]
+                }
+            }
+        }
+        init(){
+            this.asteroidPool.forEach(() => {
+                const asteroid = this.getAsteroid();
+                if (asteroid) asteroid.start();
+            })
         }
         getExplosion(){
             for (let i = 0; i < this.explosionPool.length; i++) {
@@ -240,6 +279,8 @@ window.addEventListener('load', function(){
             });
             this.player.draw(context);
             this.player.update();
+            
+            context.fillText(`Score: ${this.score}` , 20, 35)
         }
     }
 
