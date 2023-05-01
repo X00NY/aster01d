@@ -35,8 +35,10 @@ window.addEventListener('load', function(){
             this.acceleration = 4;
             this.friction = 0.99;
 
-            this.x = this.game.width * 0.5 - this.bodyimage.width * 0.5;
-            this.y = this.game.height * 0.5 - this.bodyimage.height * 0.5;
+            this.x = this.game.width * 0.5;
+            this.y = this.game.height * 0.5;
+            this.spriteWidth = 60;
+            this.spriteHeight = 60;
             this.thrust = { x:0, y:0 };
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
@@ -45,9 +47,9 @@ window.addEventListener('load', function(){
 
         draw(context){
             context.save()
-            context.translate(this.x + this.bodyimage.width * 0.5, this.y + this.bodyimage.height * 0.5)
+            context.translate(this.x, this.y)
             context.rotate(this.angle);
-            context.drawImage(this.bodyimage, - this.bodyimage.width * 0.5, - this.bodyimage.height * 0.5, 70,70)
+            context.drawImage(this.bodyimage, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight * 0.5, this.spriteWidth, this.spriteHeight)
             context.restore()
         }
         update(){
@@ -56,10 +58,10 @@ window.addEventListener('load', function(){
             this.thrust.y = this.thrust.y * this.friction; 
 
             // Sortie de l'écran, rerentre de l'autre côté
-            if (this.x > this.game.width) this.x = 0 - this.bodyimage.width;
-            if (this.x + this.bodyimage.width < 0) this.x = this.game.width;
-            if (this.y > this.game.height) this.y = 0 - this.bodyimage.height;
-            if (this.y + this.bodyimage.height < 0) this.y = this.game.height;
+            if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
+            if (this.x + this.spriteWidth * 0.5 < 0) this.x = this.game.width + this.spriteWidth * 0.5;
+            if (this.y > this.game.height + this.spriteHeight * 0.5) this.y = 0 - this.spriteHeight *0.5;
+            if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
 
             if (this.game.keys.indexOf('ArrowUp') > -1){
                 this.thrust.x = this.acceleration * Math.cos(this.angle);
@@ -91,21 +93,27 @@ window.addEventListener('load', function(){
             this.spriteWidth = 120;
             this.spriteHeight = 122;
             this.speed = 1;
+            this.rotationAngle = 0;
+            this.directionAngle= Math.random() * Math.PI * 2;
+            this.va = Math.random() * 0.04 - 0.02;
         }
         draw(context){
-            context.beginPath();
-            context.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-            context.stroke();
-            context.drawImage(this.image, this.x - this.spriteWidth * 0.5, this.y - this.spriteHeight *0.5, this.spriteWidth, this.spriteHeight);
+            context.save();
+            context.translate(this.x, this.y)
+            context.rotate(this.rotationAngle);
+            context.drawImage(this.image, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight *0.5, this.spriteWidth, this.spriteHeight);
+            context.restore();
         }
         update(){
+            this.rotationAngle += this.va;
             // Sortie de l'écran, rerentre de l'autre côté
-            if (this.x > this.game.width + this.image.width * 0.5) this.x = 0 - this.image.width *0.5;
-            if (this.x + this.image.width * 0.5 < 0) this.x = this.game.width + this.image.width * 0.5;
-            if (this.y > this.game.height + this.image.height * 0.5) this.y = 0 - this.image.height *0.5;
-            if (this.y + this.image.height * 0.5 < 0) this.y = this.game.height + this.image.height * 0.5;
+            if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
+            if (this.x + this.spriteWidth * 0.5 < 0) this.x = this.game.width + this.spriteWidth * 0.5;
+            if (this.y > this.game.height + this.spriteHeight * 0.5) this.y = 0 - this.spriteHeight *0.5;
+            if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
 
-            this.x += this.speed;
+            this.x += this.speed * Math.cos(this.directionAngle);
+            this.y += this.speed * Math.sin(this.directionAngle);
         }
     }
 
@@ -117,7 +125,7 @@ window.addEventListener('load', function(){
             this.player = new Player(this)
             this.input = new InputHandler(this)
             this.asteroidPool = [];
-            this.max = 3;
+            this.max = 5;
             this.keys = [];
             this.createAsteroidPool();
         }
