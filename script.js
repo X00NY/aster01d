@@ -3,6 +3,8 @@ window.addEventListener('load', function(){
     const ctx = canvas.getContext('2d');
     canvas.width = 1200;
     canvas.height = 800;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 3;
 
     class InputHandler {
         constructor(game) {
@@ -36,7 +38,7 @@ window.addEventListener('load', function(){
             this.x = this.game.width * 0.5 - this.bodyimage.width * 0.5;
             this.y = this.game.height * 0.5 - this.bodyimage.height * 0.5;
             this.thrust = { x:0, y:0 };
-            this.angle = 0;
+            this.angle = 270/180*Math.PI;
             this.rotation = 0;
 
         }
@@ -45,7 +47,7 @@ window.addEventListener('load', function(){
             context.save()
             context.translate(this.x + this.bodyimage.width * 0.5, this.y + this.bodyimage.height * 0.5)
             context.rotate(this.angle);
-            context.drawImage(this.bodyimage, - this.bodyimage.width * 0.5, - this.bodyimage.height * 0.5, 100,100)
+            context.drawImage(this.bodyimage, - this.bodyimage.width * 0.5, - this.bodyimage.height * 0.5, 70,70)
             context.restore()
         }
         update(){
@@ -53,6 +55,7 @@ window.addEventListener('load', function(){
             this.thrust.x = this.thrust.x * this.friction; 
             this.thrust.y = this.thrust.y * this.friction; 
 
+            // Sortie de l'écran, rerentre de l'autre côté
             if (this.x > this.game.width) this.x = 0 - this.bodyimage.width;
             if (this.x + this.bodyimage.width < 0) this.x = this.game.width;
             if (this.y > this.game.height) this.y = 0 - this.bodyimage.height;
@@ -78,6 +81,34 @@ window.addEventListener('load', function(){
         }
     }
 
+    class Asteroid {
+        constructor(game) {
+            this.game = game;
+            this.radius = 60;
+            this.x = Math.random() * this.game.width;
+            this.y = Math.random() * this.game.height;
+            this.image = document.getElementById('asteroid');
+            this.spriteWidth = 120;
+            this.spriteHeight = 122;
+            this.speed = 1;
+        }
+        draw(context){
+            context.beginPath();
+            context.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+            context.stroke();
+            context.drawImage(this.image, this.x - this.spriteWidth * 0.5, this.y - this.spriteHeight *0.5, this.spriteWidth, this.spriteHeight);
+        }
+        update(){
+            // Sortie de l'écran, rerentre de l'autre côté
+            if (this.x > this.game.width + this.image.width * 0.5) this.x = 0 - this.image.width *0.5;
+            if (this.x + this.image.width * 0.5 < 0) this.x = this.game.width + this.image.width * 0.5;
+            if (this.y > this.game.height + this.image.height * 0.5) this.y = 0 - this.image.height *0.5;
+            if (this.y + this.image.height * 0.5 < 0) this.y = this.game.height + this.image.height * 0.5;
+
+            this.x += this.speed;
+        }
+    }
+
     class Game {
         constructor(canvas){
             this.canvas = canvas;
@@ -85,13 +116,23 @@ window.addEventListener('load', function(){
             this.height = this.canvas.height;
             this.player = new Player(this)
             this.input = new InputHandler(this)
+            this.asteroidPool = [];
+            this.max = 3;
             this.keys = [];
+            this.createAsteroidPool();
         }
-        update(){
+        createAsteroidPool(){
+            for (let i=0; i< this.max; i++){
+                this.asteroidPool.push(new Asteroid(this));
+            }
+        }
+        render(context){
+            this.asteroidPool.forEach(asteroid => {
+                asteroid.draw(context);
+                asteroid.update();
+            });
+            this.player.draw(context);
             this.player.update();
-        }
-        draw(context){
-            this.player.draw(context)
         }
     }
 
@@ -102,12 +143,9 @@ window.addEventListener('load', function(){
 
     function animate(){
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        game.update();
-        game.draw(ctx);
+        game.render(ctx);
         requestAnimationFrame(animate)
     }
     animate();
-
-
     
 })
