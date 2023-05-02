@@ -33,8 +33,8 @@ window.addEventListener('load', function(){
             this.game = game;
             this.bodyimage = document.getElementById('spaceship');
 
-            this.turnSpeed = 3;
-            this.acceleration = 2;
+            this.turnSpeed = 5;
+            this.acceleration = 4;
             this.friction = 0.99;
 
             this.x = this.game.width * 0.5;
