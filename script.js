@@ -34,8 +34,12 @@ window.addEventListener('load', function(){
             this.bodyimage = document.getElementById('spaceship');
 
             this.turnSpeed = 5;
-            this.acceleration = 4;
+            this.acceleration = 1;
             this.friction = 0.99;
+
+            this.allowToShoot = true;
+            this.shootingTimer = 0;
+            this.shootingInterval = 1000 / 5;
 
             this.x = this.game.width * 0.5;
             this.y = this.game.height * 0.5;
@@ -44,6 +48,7 @@ window.addEventListener('load', function(){
             this.thrust = { x:0, y:0 };
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
+            this.radius= 30;
 
         }
 
@@ -54,7 +59,7 @@ window.addEventListener('load', function(){
             context.drawImage(this.bodyimage, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight * 0.5, this.spriteWidth, this.spriteHeight)
             context.restore()
         }
-        update(){
+        update(deltaTime){
             this.rotation = 0;
             this.thrust.x = this.thrust.x * this.friction; 
             this.thrust.y = this.thrust.y * this.friction; 
@@ -66,8 +71,8 @@ window.addEventListener('load', function(){
             if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
 
             if (this.game.keys.indexOf('ArrowUp') > -1){
-                this.thrust.x = this.acceleration * Math.cos(this.angle);
-                this.thrust.y = this.acceleration * Math.sin(this.angle);
+                this.thrust.x += this.acceleration * Math.cos(this.angle);
+                this.thrust.y += this.acceleration * Math.sin(this.angle);
             }
             if (this.game.keys.indexOf('ArrowLeft') > -1){
                 this.rotation = -this.turnSpeed /180 * Math.PI;
@@ -75,13 +80,79 @@ window.addEventListener('load', function(){
             if (this.game.keys.indexOf('ArrowRight') > -1){
                 this.rotation = this.turnSpeed /180 * Math.PI;
             }
-            if ( this.game.keys.indexOf(' ') > -1) {
+            if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot)) {
                 console.log('Pew Pew');
+                this.allowToShoot = false;
+                this.shootingTimer = 0;
+                const projectile = this.game.getProjectile();
+                if(projectile) projectile.start();
+            }
+            if(this.shootingTimer > this.shootingInterval){
+                this.allowToShoot = true;
+                this.shootingTimer = 0;
+            } else {
+                this.shootingTimer += deltaTime;
             }
             this.angle += this.rotation;
             this.x += this.thrust.x;
             this.y += this.thrust.y;
 
+        }
+    }
+
+    class Projectile {
+        constructor(game, player){
+            this.game = game;
+            this.player = player;
+
+            this.radius = 5;
+
+            this.x = 0;
+            this.y = 0;
+            this.speed = 8;
+            this.angle = 0;
+            this.free = true;
+            this.maxdistance = 0.6;
+            this.distance = 0;
+        }
+        draw(/** @type {CanvasRenderingContext2D}*/context){
+            if(!this.free){
+                context.save();
+                context.fillStyle = 'red'
+                context.beginPath();
+                context.arc(this.x, this.y, this.radius, 0, Math.PI*2)
+                context.fill();
+                context.restore();
+            }
+        }
+        update(){
+            if(!this.free){
+
+                if (this.distance > this.maxdistance * game.width){
+                    this.reset();
+                }
+
+                // Sortie de l'écran, rerentre de l'autre côté
+                if (this.x > this.game.width + this.radius) this.x = 0 - this.radius;
+                if (this.x + this.radius < 0) this.x = this.game.width + this.radius;
+                if (this.y > this.game.height + this.radius) this.y = 0 - this.radius;
+                if (this.y + this.radius < 0) this.y = this.game.height + this.radius;
+
+                this.x += this.speed * Math.cos(this.angle);
+                this.y += this.speed * Math.sin(this.angle);
+
+                this.distance += Math.hypot(this.speed * Math.cos(this.angle),this.speed * Math.sin(this.angle))
+            }
+        }
+        reset(){
+            this.free = true;
+        }
+        start(){
+            this.distance = 0;
+            this.angle = this.player.angle
+            this.free = false;
+            this.x = this.player.x + Math.cos(this.angle) * this.player.radius;
+            this.y = this.player.y + Math.sin(this.angle) * this.player.radius;
         }
     }
 
@@ -198,8 +269,8 @@ window.addEventListener('load', function(){
             this.input = new InputHandler(this)
 
             this.score = 0;
+
             this.asteroidPool = [];
-            
             this.maxAsteroids = 10;
 
             this.keys = [];
@@ -215,6 +286,10 @@ window.addEventListener('load', function(){
             this.explosionPool = [];
             this.maxExplosions = 5;
             this.createExplosionPool();
+
+            this.projectilePool = [];
+            this.maxProjectiles = 5;
+            this.createProjectilePool();
 
             window.addEventListener('click', (e)=>{
                 // add explosion at click coordonates
@@ -240,10 +315,15 @@ window.addEventListener('load', function(){
                 this.explosionPool.push(new Explosion(this));
             }
         }
+        createProjectilePool(){
+            for (let i=0; i< this.maxProjectiles; i++){
+                this.projectilePool.push(new Projectile(this, this.player));
+            }
+        }
         getAsteroid(){
             for (let i=0; i < this.asteroidPool.length; i ++) {
                 if (this.asteroidPool[i].free) {
-                    return this.asteroidPool[i]
+                    return this.asteroidPool[i];
                 }
             }
         }
@@ -256,7 +336,14 @@ window.addEventListener('load', function(){
         getExplosion(){
             for (let i = 0; i < this.explosionPool.length; i++) {
                 if (this.explosionPool[i].free){
-                    return this.explosionPool[i]
+                    return this.explosionPool[i];
+                }
+            }
+        }
+        getProjectile(){
+            for (let i = 0; i < this.projectilePool.length; i++){
+                if (this.projectilePool[i].free){
+                    return this.projectilePool[i];
                 }
             }
         }
@@ -277,8 +364,12 @@ window.addEventListener('load', function(){
                 explosion.draw(context);
                 explosion.update(deltaTime);
             });
+            this.projectilePool.forEach(projo => {
+                projo.draw(context);
+                projo.update();
+            })
             this.player.draw(context);
-            this.player.update();
+            this.player.update(deltaTime);
             
             context.fillText(`Score: ${this.score}` , 20, 35)
         }
