@@ -292,19 +292,6 @@ window.addEventListener('load', function(){
             this.maxProjectiles = 5;
             this.createProjectilePool();
 
-            window.addEventListener('click', (e)=>{
-                // add explosion at click coordonates
-                this.mouse.x = e.offsetX;
-                this.mouse.y = e.offsetY;
-                this.asteroidPool.forEach(asteroid => {
-                    if (!asteroid.free && this.checkCollision(asteroid, this.mouse)){
-                        const explosion = this.getExplosion();
-                        if (explosion) explosion.start(asteroid.x, asteroid.y, asteroid.speed * 0.5, asteroid.directionAngle);
-                        asteroid.reset()
-                        this.score++
-                    }
-                })
-            })
         }
         createAsteroidPool(){
             for (let i=0; i< this.maxAsteroids; i++){
@@ -367,16 +354,27 @@ window.addEventListener('load', function(){
             });
             this.projectilePool.forEach(projo => {
                 projo.draw(context);
-                projo.update();
+                projo.update(); 
             })
             this.player.draw(context);
             this.player.update(deltaTime);
             
             context.fillText(`Score: ${this.score}` , 20, 35)
         }
+        collisionLoop(){
+            this.asteroidPool.forEach(astero=>{
+                this.projectilePool.forEach(projecto=>{
+                    if (!astero.free && !projecto.free && this.checkCollision(astero, projecto)) {
+                        const explosion = this.getExplosion();
+                        if (explosion) explosion.start(astero.x, astero.y, astero.speed * 0.5, astero.directionAngle);
+                        astero.reset();
+                        projecto.reset();
+                        this.score++
+                    }
+                })
+            })
+        }
     }
-
-   
 
     const game = new Game(canvas)
     
@@ -386,6 +384,7 @@ window.addEventListener('load', function(){
         lastTime = timeStamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         game.render(ctx, deltaTime);
+        game.collisionLoop();
         requestAnimationFrame(animate)
     }
     animate(0);
