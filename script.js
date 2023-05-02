@@ -46,6 +46,7 @@ window.addEventListener('load', function(){
             this.spriteWidth = 60;
             this.spriteHeight = 60;
             this.thrust = { x:0, y:0 };
+            this.maxSpeed = 10;
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
             this.radius= 30;
@@ -61,8 +62,6 @@ window.addEventListener('load', function(){
         }
         update(deltaTime){
             this.rotation = 0;
-            this.thrust.x = this.thrust.x * this.friction; 
-            this.thrust.y = this.thrust.y * this.friction; 
 
             // Sortie de l'écran, rerentre de l'autre côté
             if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
@@ -71,17 +70,17 @@ window.addEventListener('load', function(){
             if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
 
             if (this.game.keys.indexOf('ArrowUp') > -1){
+                console.log(this.thrust.x,this.thrust.y);
                 this.thrust.x += this.acceleration * Math.cos(this.angle);
                 this.thrust.y += this.acceleration * Math.sin(this.angle);
             }
             if (this.game.keys.indexOf('ArrowLeft') > -1){
-                this.rotation = -this.turnSpeed /180 * Math.PI;
+                this.rotation += -this.turnSpeed /180 * Math.PI;
             }
             if (this.game.keys.indexOf('ArrowRight') > -1){
-                this.rotation = this.turnSpeed /180 * Math.PI;
+                this.rotation += this.turnSpeed /180 * Math.PI;
             }
             if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot)) {
-                console.log('Pew Pew');
                 this.allowToShoot = false;
                 this.shootingTimer = 0;
                 const projectile = this.game.getProjectile();
@@ -94,6 +93,8 @@ window.addEventListener('load', function(){
                 this.shootingTimer += deltaTime;
             }
             this.angle += this.rotation;
+            this.thrust.x *= this.friction; 
+            this.thrust.y *= this.friction;
             this.x += this.thrust.x;
             this.y += this.thrust.y;
 
@@ -112,7 +113,7 @@ window.addEventListener('load', function(){
             this.speed = 8;
             this.angle = 0;
             this.free = true;
-            this.maxdistance = 0.6;
+            this.maxdistance = 0.3;
             this.distance = 0;
         }
         draw(/** @type {CanvasRenderingContext2D}*/context){
