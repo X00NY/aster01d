@@ -33,8 +33,8 @@ window.addEventListener('load', function(){
             this.game = game;
             this.bodyimage = document.getElementById('spaceship');
 
-            this.turnSpeed = 5;
-            this.acceleration = 1;
+            this.turnSpeed = 3;
+            this.acceleration = 0.5;
             this.friction = 0.99;
 
             this.allowToShoot = true;
@@ -46,7 +46,7 @@ window.addEventListener('load', function(){
             this.spriteWidth = 60;
             this.spriteHeight = 60;
             this.thrust = { x:0, y:0 };
-            this.maxSpeed = 10;
+            this.maxSpeed = 8;
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
             this.radius= 30;
@@ -70,9 +70,10 @@ window.addEventListener('load', function(){
             if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
 
             if (this.game.keys.indexOf('ArrowUp') > -1){
-                console.log(this.thrust.x,this.thrust.y);
-                this.thrust.x += this.acceleration * Math.cos(this.angle);
-                this.thrust.y += this.acceleration * Math.sin(this.angle);
+                if(Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))< this.maxSpeed) {
+                    this.thrust.x += this.acceleration * Math.cos(this.angle);
+                    this.thrust.y += this.acceleration * Math.sin(this.angle);
+                }
             }
             if (this.game.keys.indexOf('ArrowLeft') > -1){
                 this.rotation += -this.turnSpeed /180 * Math.PI;
@@ -110,7 +111,7 @@ window.addEventListener('load', function(){
 
             this.x = 0;
             this.y = 0;
-            this.speed = 8;
+            this.speed = 5;
             this.angle = 0;
             this.free = true;
             this.maxdistance = 0.3;
@@ -289,7 +290,7 @@ window.addEventListener('load', function(){
             this.createExplosionPool();
 
             this.projectilePool = [];
-            this.maxProjectiles = 5;
+            this.maxProjectiles = 2;
             this.createProjectilePool();
 
         }
