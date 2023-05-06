@@ -253,6 +253,58 @@ window.addEventListener('load', function(){
         }
     }
 
+    class UI{
+        constructor(game){
+            this.game = game;
+            this.fontSize = 25;
+            this.fontFamily = 'Bangers';
+            this.color = 'white'
+        }
+
+        draw(context) {
+            context.save();
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            context.shadowColor = 'black';
+            context.font = this.fontSize + 'px ' + this.fontFamily;
+            // Score
+            context.fillText(`Score: ${game.score}` , 20, 35)
+
+            // Munitions
+            for (let i = 0 ; i < this.game.projectilePool.length; i++){
+                if (this.game.projectilePool[i].free) {
+                    context.fillStyle = 'red'
+                    context.beginPath();
+                    context.arc(30 + 20 * i, 50, 5, 0, Math.PI*2)
+                    context.fill();
+                }
+            }
+
+            // GameOver messages 
+            if (this.game.gameOver) {
+                context.textAlign = 'center'
+                
+                let message1;
+                let message2;
+                if (this.game.score >= this.game.winningScore){
+                    context.fillStyle = 'yellow'
+                    message1 = 'You Win!';
+                    message2 = 'Well done!';
+                } else {
+                    context.fillStyle = 'red'
+                    message1 = 'You Lose!';
+                    message2 = 'Try again!';
+                }
+                context.font = '50px ' + this.fontFamily;
+                context.fillText(message1, this.game.width * 0.5, this.game.height * 0.5 - 40);
+                context.font = '25px ' + this.fontFamily;
+                context.fillText(message2, this.game.width * 0.5, this.game.height * 0.5 + 40);
+            }
+
+            context.restore();
+        }
+    }
+
     class Game {
         constructor(canvas){
             this.canvas = canvas;
@@ -260,14 +312,19 @@ window.addEventListener('load', function(){
             this.height = this.canvas.height;
             this.player = new Player(this)
             this.input = new InputHandler(this)
+            this.ui = new UI(this)
+            this.keys = [];
 
+            this.gameOver = false;
             this.score = 0;
+            this.winningScore = 10;
+            this.gameTime = 0;
+            this.timeLimit = 10000;
 
             this.asteroidPool = [];
             this.maxAsteroids = 10;
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
-            this.keys = [];
             this.init(); 
 
             this.explosionPool = [];
@@ -315,6 +372,8 @@ window.addEventListener('load', function(){
         }
 
         render(context, deltaTime){
+            if(!this.gameOver) this.gameTime += deltaTime;
+            if (this.gameTime >= this.timeLimit) this.gameOver = true;
             this.asteroidPool.forEach(asteroid => {
                 asteroid.draw(context);
                 asteroid.update();
@@ -329,8 +388,8 @@ window.addEventListener('load', function(){
             })
             this.player.draw(context);
             this.player.update(deltaTime);
-            
-            context.fillText(`Score: ${this.score}` , 20, 35)
+
+            this.ui.draw(context);
         }
         collisionLoop(){
             this.asteroidPool.forEach(astero=>{

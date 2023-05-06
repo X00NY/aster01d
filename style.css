@@ -12,6 +12,7 @@ body{
 
 #myCanvas {
     background: center / contain url('/images/background2.png');
+    font-family: 'Bangers', cursive;
 }
 
 
