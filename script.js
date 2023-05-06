@@ -46,7 +46,7 @@ window.addEventListener('load', function(){
             this.spriteWidth = 60;
             this.spriteHeight = 60;
             this.thrust = { x:0, y:0 };
-            this.maxSpeed = 8;
+            this.maxSpeed = 3;
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
             this.radius= 30;
@@ -64,10 +64,7 @@ window.addEventListener('load', function(){
             this.rotation = 0;
 
             // Sortie de l'écran, rerentre de l'autre côté
-            if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
-            if (this.x + this.spriteWidth * 0.5 < 0) this.x = this.game.width + this.spriteWidth * 0.5;
-            if (this.y > this.game.height + this.spriteHeight * 0.5) this.y = 0 - this.spriteHeight *0.5;
-            if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
+            this.game.outOfScreenPosition(this, this.game);
 
             if (this.game.keys.indexOf('ArrowUp') > -1){
                 if(Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))< this.maxSpeed) {
@@ -84,7 +81,7 @@ window.addEventListener('load', function(){
             if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot)) {
                 this.allowToShoot = false;
                 this.shootingTimer = 0;
-                const projectile = this.game.getProjectile();
+                const projectile = this.game.getFreeObject(this.game.projectilePool);
                 if(projectile) projectile.start();
             }
             if(this.shootingTimer > this.shootingInterval){
@@ -103,9 +100,9 @@ window.addEventListener('load', function(){
     }
 
     class Projectile {
-        constructor(game, player){
+        constructor(game){
             this.game = game;
-            this.player = player;
+            this.player = game.player;
 
             this.radius = 5;
 
@@ -135,10 +132,7 @@ window.addEventListener('load', function(){
                 }
 
                 // Sortie de l'écran, rerentre de l'autre côté
-                if (this.x > this.game.width + this.radius) this.x = 0 - this.radius;
-                if (this.x + this.radius < 0) this.x = this.game.width + this.radius;
-                if (this.y > this.game.height + this.radius) this.y = 0 - this.radius;
-                if (this.y + this.radius < 0) this.y = this.game.height + this.radius;
+                this.game.outOfScreenPosition(this, this.game);
 
                 this.x += this.speed * Math.cos(this.angle);
                 this.y += this.speed * Math.sin(this.angle);
@@ -189,11 +183,8 @@ window.addEventListener('load', function(){
             if (!this.free){
                 this.rotationAngle += this.va;
                 // Sortie de l'écran, rerentre de l'autre côté
-                if (this.x > this.game.width + this.spriteWidth * 0.5) this.x = 0 - this.spriteWidth *0.5;
-                if (this.x + this.spriteWidth * 0.5 < 0) this.x = this.game.width + this.spriteWidth * 0.5;
-                if (this.y > this.game.height + this.spriteHeight * 0.5) this.y = 0 - this.spriteHeight *0.5;
-                if (this.y + this.spriteHeight * 0.5 < 0) this.y = this.game.height + this.spriteHeight * 0.5;
-    
+                this.game.outOfScreenPosition(this, this.game);
+
                 this.x += this.speed * Math.cos(this.directionAngle);
                 this.y += this.speed * Math.sin(this.directionAngle);
             }
@@ -224,16 +215,16 @@ window.addEventListener('load', function(){
             this.maxFrame = 22;
             this.animationTimer = 0;
             this.animationInterval = 1000/35;
+            this.zoomCoef = 0.8;
         }
         draw(context){
             if(!this.free){
                 context.drawImage(this.image, 
                 this.spriteWidth * this.frameX, this.spriteHeight * this.frameY, 
                 this.spriteWidth, this.spriteHeight, 
-                this.x - this.spriteWidth * 0.5, this.y - this.spriteHeight * 0.5, 
-                this.spriteWidth, this.spriteHeight)
+                this.x - this.spriteWidth * this.zoomCoef * 0.5, this.y - this.spriteHeight * this.zoomCoef * 0.5, 
+                this.spriteWidth *this.zoomCoef , this.spriteHeight * this.zoomCoef )
             }
-
         }
         update(deltaTime){
             if(!this.free){
@@ -274,68 +265,47 @@ window.addEventListener('load', function(){
 
             this.asteroidPool = [];
             this.maxAsteroids = 10;
+            this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
             this.keys = [];
-            this.createAsteroidPool();
-            this.init();
-
-            this.mouse = {
-                x: 0,
-                y: 0,
-                radius: 2
-            }
+            this.init(); 
 
             this.explosionPool = [];
             this.maxExplosions = 5;
-            this.createExplosionPool();
+            this.createObjectPool(this.explosionPool, this.maxExplosions, Explosion);
 
             this.projectilePool = [];
             this.maxProjectiles = 2;
-            this.createProjectilePool();
+            this.createObjectPool(this.projectilePool, this.maxProjectiles, Projectile);
 
         }
-        createAsteroidPool(){
-            for (let i=0; i< this.maxAsteroids; i++){
-                this.asteroidPool.push(new Asteroid(this));
+        createObjectPool(objectPool, maxObject, Object){
+            for (let i=0; i < maxObject; i++) {
+                objectPool.push(new Object(this))
             }
         }
-        createExplosionPool(){
-            for (let i=0; i< this.maxExplosions; i++){
-                this.explosionPool.push(new Explosion(this));
-            }
-        }
-        createProjectilePool(){
-            for (let i=0; i< this.maxProjectiles; i++){
-                this.projectilePool.push(new Projectile(this, this.player));
-            }
-        }
-        getAsteroid(){
-            for (let i=0; i < this.asteroidPool.length; i ++) {
-                if (this.asteroidPool[i].free) {
-                    return this.asteroidPool[i];
+
+        getFreeObject(objectPool){
+            for (let i=0; i < objectPool.length; i++){
+                if (objectPool[i].free) {
+                    return objectPool[i];
                 }
             }
         }
+        outOfScreenPosition(object, game){
+                if (object.x > game.width + object.radius) object.x = 0 - object.radius;
+                if (object.x + object.radius < 0) object.x = game.width + object.radius;
+                if (object.y > game.height + object.radius) object.y = 0 - object.radius;
+                if (object.y + object.radius < 0) object.y = game.height + object.radius;
+        }
+        
         init(){
-            this.asteroidPool.forEach(() => {
-                const asteroid = this.getAsteroid();
+            for (let i = 0; i < this.maxAsteroids; i++){
+                const asteroid = this.getFreeObject(this.asteroidPool);
                 if (asteroid) asteroid.start();
-            })
-        }
-        getExplosion(){
-            for (let i = 0; i < this.explosionPool.length; i++) {
-                if (this.explosionPool[i].free){
-                    return this.explosionPool[i];
-                }
             }
         }
-        getProjectile(){
-            for (let i = 0; i < this.projectilePool.length; i++){
-                if (this.projectilePool[i].free){
-                    return this.projectilePool[i];
-                }
-            }
-        }
+        
         checkCollision(a, b) {
             const sumOfRadius = a.radius + b.radius;
             const dx = a.x - b.x;
@@ -366,7 +336,7 @@ window.addEventListener('load', function(){
             this.asteroidPool.forEach(astero=>{
                 this.projectilePool.forEach(projecto=>{
                     if (!astero.free && !projecto.free && this.checkCollision(astero, projecto)) {
-                        const explosion = this.getExplosion();
+                        const explosion = this.getFreeObject(this.explosionPool);
                         if (explosion) explosion.start(astero.x, astero.y, astero.speed * 0.5, astero.directionAngle);
                         astero.reset();
                         projecto.reset();
