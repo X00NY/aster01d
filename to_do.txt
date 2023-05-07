@@ -1,0 +1,12 @@
+--Régler les FPS pour que ça tourne à la même vitesse sur tous les pc. (NORMALEMENT C'EST BON MAIS A TESTER !)
+
+
+--Ajouter la défaite si on se prends un astéroid
+
+--Ajouter des frames d'invincibilités au début du jeu
+
+--Ajouter la divisions des astéroid
+
+--Ajouter la défaite si 0 vie restante
+
+--Ajouter la victoire si plus aucun astéroid.

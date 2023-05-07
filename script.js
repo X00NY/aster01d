@@ -37,19 +37,26 @@ window.addEventListener('load', function(){
             this.acceleration = 0.5;
             this.friction = 0.99;
 
-            this.allowToShoot = true;
+            this.ammo = 2;
+            this.maxAmmo = 10;
+
+            this.reloadTimer = 0
+            this.reloadInterval = 50;
+
             this.shootingTimer = 0;
-            this.shootingInterval = 1000 / 5;
+            this.shootingInterval = 10;
 
             this.x = this.game.width * 0.5;
             this.y = this.game.height * 0.5;
             this.spriteWidth = 60;
             this.spriteHeight = 60;
+            this.radius= 30;
+
+
             this.thrust = { x:0, y:0 };
             this.maxSpeed = 3;
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
-            this.radius= 30;
 
         }
 
@@ -61,40 +68,59 @@ window.addEventListener('load', function(){
             context.restore()
         }
         update(deltaTime){
-            this.rotation = 0;
-
             // Sortie de l'écran, rerentre de l'autre côté
             this.game.outOfScreenPosition(this, this.game);
 
+            // Accélération du vaisseau
             if (this.game.keys.indexOf('ArrowUp') > -1){
                 if(Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))< this.maxSpeed) {
                     this.thrust.x += this.acceleration * Math.cos(this.angle);
                     this.thrust.y += this.acceleration * Math.sin(this.angle);
                 }
             }
+
+            // Virage à gauche
             if (this.game.keys.indexOf('ArrowLeft') > -1){
                 this.rotation += -this.turnSpeed /180 * Math.PI;
             }
+
+            // Virage à droite
             if (this.game.keys.indexOf('ArrowRight') > -1){
                 this.rotation += this.turnSpeed /180 * Math.PI;
             }
-            if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot)) {
+
+            // Lancer un projectile
+            if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot) && (this.ammo > 0)) {
                 this.allowToShoot = false;
                 this.shootingTimer = 0;
+                this.ammo--;
                 const projectile = this.game.getFreeObject(this.game.projectilePool);
                 if(projectile) projectile.start();
             }
+
+            // Gestion de la vitesse d'attaque
             if(this.shootingTimer > this.shootingInterval){
                 this.allowToShoot = true;
                 this.shootingTimer = 0;
             } else {
                 this.shootingTimer += deltaTime;
             }
+
+            // Gestion de la vitesse de recharge
+            if(this.reloadTimer > this.reloadInterval){ 
+                if(this.ammo < this.maxAmmo)this.ammo++;
+                this.reloadTimer = 0;
+            } else {
+                this.reloadTimer += deltaTime;
+            }
+
+            //Mise à jour de la position du vaisseau
             this.angle += this.rotation;
             this.thrust.x *= this.friction; 
             this.thrust.y *= this.friction;
             this.x += this.thrust.x;
             this.y += this.thrust.y;
+            this.rotation = 0;
 
         }
     }
@@ -102,8 +128,7 @@ window.addEventListener('load', function(){
     class Projectile {
         constructor(game){
             this.game = game;
-            this.player = game.player;
-
+            
             this.radius = 5;
 
             this.x = 0;
@@ -145,10 +170,10 @@ window.addEventListener('load', function(){
         }
         start(){
             this.distance = 0;
-            this.angle = this.player.angle
+            this.angle = this.game.player.angle
             this.free = false;
-            this.x = this.player.x + Math.cos(this.angle) * this.player.radius;
-            this.y = this.player.y + Math.sin(this.angle) * this.player.radius;
+            this.x = this.game.player.x + Math.cos(this.angle) * this.game.player.radius;
+            this.y = this.game.player.y + Math.sin(this.angle) * this.game.player.radius;
         }
     }
 
@@ -271,13 +296,11 @@ window.addEventListener('load', function(){
             context.fillText(`Score: ${game.score}` , 20, 35)
 
             // Munitions
-            for (let i = 0 ; i < this.game.projectilePool.length; i++){
-                if (this.game.projectilePool[i].free) {
+            for (let i = 0 ; i < this.game.player.ammo; i++){
                     context.fillStyle = 'red'
                     context.beginPath();
                     context.arc(30 + 20 * i, 50, 5, 0, Math.PI*2)
                     context.fill();
-                }
             }
 
             // GameOver messages 
@@ -307,9 +330,15 @@ window.addEventListener('load', function(){
 
     class Game {
         constructor(canvas){
+
             this.canvas = canvas;
             this.width = this.canvas.width;
             this.height = this.canvas.height;
+
+            this.asteroidPool = [];
+            this.explosionPool = [];
+            this.projectilePool = [];
+
             this.player = new Player(this)
             this.input = new InputHandler(this)
             this.ui = new UI(this)
@@ -320,22 +349,22 @@ window.addEventListener('load', function(){
             this.winningScore = 10;
             this.gameTime = 0;
             this.timeLimit = 10000;
+            this.fpsTimer =0;
+            this.fps = 80;
 
-            this.asteroidPool = [];
+           
             this.maxAsteroids = 10;
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
             this.init(); 
 
-            this.explosionPool = [];
             this.maxExplosions = 5;
             this.createObjectPool(this.explosionPool, this.maxExplosions, Explosion);
 
-            this.projectilePool = [];
-            this.maxProjectiles = 2;
+            this.maxProjectiles = 10;
             this.createObjectPool(this.projectilePool, this.maxProjectiles, Projectile);
-
         }
+
         createObjectPool(objectPool, maxObject, Object){
             for (let i=0; i < maxObject; i++) {
                 objectPool.push(new Object(this))
@@ -372,24 +401,32 @@ window.addEventListener('load', function(){
         }
 
         render(context, deltaTime){
-            if(!this.gameOver) this.gameTime += deltaTime;
-            if (this.gameTime >= this.timeLimit) this.gameOver = true;
-            this.asteroidPool.forEach(asteroid => {
-                asteroid.draw(context);
-                asteroid.update();
-            });
-            this.explosionPool.forEach(explosion => {
-                explosion.draw(context);
-                explosion.update(deltaTime);
-            });
-            this.projectilePool.forEach(projo => {
-                projo.draw(context);
-                projo.update(); 
-            })
-            this.player.draw(context);
-            this.player.update(deltaTime);
+            if (this.fpsTimer > 1000 / this.fps) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // if(!this.gameOver) this.gameTime += deltaTime;
+                // if (this.gameTime >= this.timeLimit) this.gameOver = true;
+                this.asteroidPool.forEach(asteroid => {
+                    asteroid.draw(context);
+                    asteroid.update();
+                });
+                this.explosionPool.forEach(explosion => {
+                    explosion.draw(context);
+                    explosion.update(deltaTime);
+                });
+                this.projectilePool.forEach(projo => {
+                    projo.draw(context);
+                    projo.update(); 
+                })
+                this.player.draw(context);
+                this.player.update(deltaTime);
+    
+                this.ui.draw(context);
 
-            this.ui.draw(context);
+                this.fpsTimer = 0;
+
+            } else {
+                this.fpsTimer += deltaTime;
+            }
         }
         collisionLoop(){
             this.asteroidPool.forEach(astero=>{
@@ -412,7 +449,6 @@ window.addEventListener('load', function(){
     function animate(timeStamp){
         const deltaTime = timeStamp - lastTime;
         lastTime = timeStamp;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         game.render(ctx, deltaTime);
         game.collisionLoop();
         requestAnimationFrame(animate)
