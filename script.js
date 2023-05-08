@@ -32,6 +32,8 @@ window.addEventListener('load', function(){
         constructor(game){
             this.game = game;
             this.bodyimage = document.getElementById('spaceship');
+            this.ingame = true;
+            this.invincibility = true;
 
             this.turnSpeed = 3;
             this.acceleration = 0.5;
@@ -54,6 +56,7 @@ window.addEventListener('load', function(){
 
 
             this.thrust = { x:0, y:0 };
+            this.speed = 0;
             this.maxSpeed = 3;
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
@@ -61,67 +64,98 @@ window.addEventListener('load', function(){
         }
 
         draw(context){
-            context.save()
-            context.translate(this.x, this.y)
-            context.rotate(this.angle);
-            context.drawImage(this.bodyimage, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight * 0.5, this.spriteWidth, this.spriteHeight)
-            context.restore()
+            if (this.ingame){
+                context.save()
+                context.translate(this.x, this.y)
+                context.rotate(this.angle);
+                context.drawImage(this.bodyimage, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight * 0.5, this.spriteWidth, this.spriteHeight)
+                context.restore()
+            }
+            if (this.invincibility && !this.game.gameOver) {
+                context.save();
+                context.strokeStyle = 'red'
+                context.beginPath();
+                context.arc(this.game.width * 0.5, this.game.height * 0.5, 60, 0, Math.PI*2);
+                context.stroke();
+                context.restore();
+            }
         }
         update(deltaTime){
-            // Sortie de l'écran, rerentre de l'autre côté
-            this.game.outOfScreenPosition(this, this.game);
 
-            // Accélération du vaisseau
-            if (this.game.keys.indexOf('ArrowUp') > -1){
-                if(Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))< this.maxSpeed) {
-                    this.thrust.x += this.acceleration * Math.cos(this.angle);
-                    this.thrust.y += this.acceleration * Math.sin(this.angle);
+            if (this.ingame) {
+                // Sortie de l'écran, rerentre de l'autre côté
+                this.game.outOfScreenPosition(this, this.game);
+
+                if (this.game.keys.length > 0) this.invincibility = false;
+    
+                // Accélération du vaisseau
+                if (this.game.keys.indexOf('ArrowUp') > -1){
+                    if(this.speed < this.maxSpeed) {
+                        this.thrust.x += this.acceleration * Math.cos(this.angle);
+                        this.thrust.y += this.acceleration * Math.sin(this.angle);
+                    }
                 }
+    
+                // Virage à gauche
+                if (this.game.keys.indexOf('ArrowLeft') > -1){
+                    this.rotation += -this.turnSpeed /180 * Math.PI;
+                }
+    
+                // Virage à droite
+                if (this.game.keys.indexOf('ArrowRight') > -1){
+                    this.rotation += this.turnSpeed /180 * Math.PI;
+                }
+    
+                // Lancer un projectile
+                if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot) && (this.ammo > 0)) {
+                    this.allowToShoot = false;
+                    this.shootingTimer = 0;
+                    this.ammo--;
+                    const projectile = this.game.getFreeObject(this.game.projectilePool);
+                    if(projectile) projectile.start();
+                }
+    
+                // Gestion de la vitesse d'attaque
+                if(this.shootingTimer > this.shootingInterval){
+                    this.allowToShoot = true;
+                    this.shootingTimer = 0;
+                } else {
+                    this.shootingTimer += deltaTime;
+                }
+    
+                // Gestion de la vitesse de recharge
+                if(this.reloadTimer > this.reloadInterval){ 
+                    if(this.ammo < this.maxAmmo)this.ammo++;
+                    this.reloadTimer = 0;
+                } else {
+                    this.reloadTimer += deltaTime;
+                }
+    
             }
-
-            // Virage à gauche
-            if (this.game.keys.indexOf('ArrowLeft') > -1){
-                this.rotation += -this.turnSpeed /180 * Math.PI;
-            }
-
-            // Virage à droite
-            if (this.game.keys.indexOf('ArrowRight') > -1){
-                this.rotation += this.turnSpeed /180 * Math.PI;
-            }
-
-            // Lancer un projectile
-            if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot) && (this.ammo > 0)) {
-                this.allowToShoot = false;
-                this.shootingTimer = 0;
-                this.ammo--;
-                const projectile = this.game.getFreeObject(this.game.projectilePool);
-                if(projectile) projectile.start();
-            }
-
-            // Gestion de la vitesse d'attaque
-            if(this.shootingTimer > this.shootingInterval){
-                this.allowToShoot = true;
-                this.shootingTimer = 0;
-            } else {
-                this.shootingTimer += deltaTime;
-            }
-
-            // Gestion de la vitesse de recharge
-            if(this.reloadTimer > this.reloadInterval){ 
-                if(this.ammo < this.maxAmmo)this.ammo++;
-                this.reloadTimer = 0;
-            } else {
-                this.reloadTimer += deltaTime;
-            }
-
             //Mise à jour de la position du vaisseau
+            this.speed = Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))
             this.angle += this.rotation;
             this.thrust.x *= this.friction; 
             this.thrust.y *= this.friction;
             this.x += this.thrust.x;
             this.y += this.thrust.y;
             this.rotation = 0;
-
+        }
+        loosingLife(){
+            this.ingame = false;
+            this.game.lifeNumber--;
+            const explosion = this.game.getFreeObject(this.game.explosionPool);
+            if (explosion) explosion.start()
+        }
+        reset(){
+            this.ingame = true;
+            this.x = this.game.width * 0.5;
+            this.y = this.game.height * 0.5;
+            this.thrust = { x:0, y:0 };
+            this.speed = 0;
+            this.angle = 270/180*Math.PI;
+            this.rotation = 0;
+            this.invincibility = true;
         }
     }
 
@@ -239,7 +273,7 @@ window.addEventListener('load', function(){
             this.frameY = Math.floor(Math.random() * 3);
             this.maxFrame = 22;
             this.animationTimer = 0;
-            this.animationInterval = 1000/35;
+            this.animationInterval = 1000/80;
             this.zoomCoef = 0.8;
         }
         draw(context){
@@ -255,6 +289,7 @@ window.addEventListener('load', function(){
             if(!this.free){
                 this.x += this.speed * Math.cos(this.directionAngle);
                 this.y += this.speed * Math.sin(this.directionAngle);
+                
                 if(this.animationTimer > this.animationInterval){
                     this.frameX++;
                     this.animationTimer = 0;
@@ -267,14 +302,14 @@ window.addEventListener('load', function(){
         reset(){
             this.free = true;
         }
-        start(x, y, asteroSpeed, asteroDirectionAngle){
+        start(x, y, speed, angle){
             this.free = false;
             this.x = x;
             this.y = y;
             this.frameX = 0;
             this.frameY = Math.floor(Math.random() * 3);
-            this.speed = asteroSpeed;
-            this.directionAngle = asteroDirectionAngle;
+            this.speed = speed;
+            this.directionAngle = angle;
         }
     }
 
@@ -295,6 +330,9 @@ window.addEventListener('load', function(){
             // Score
             context.fillText(`Score: ${game.score}` , 20, 35)
 
+            // Lives
+            context.fillText(`Vies: ${game.lifeNumber}` , 1100, 35)
+
             // Munitions
             for (let i = 0 ; i < this.game.player.ammo; i++){
                     context.fillStyle = 'red'
@@ -309,15 +347,11 @@ window.addEventListener('load', function(){
                 
                 let message1;
                 let message2;
-                if (this.game.score >= this.game.winningScore){
-                    context.fillStyle = 'yellow'
-                    message1 = 'You Win!';
-                    message2 = 'Well done!';
-                } else {
-                    context.fillStyle = 'red'
-                    message1 = 'You Lose!';
-                    message2 = 'Try again!';
-                }
+                
+                context.fillStyle = 'red'
+                message1 = 'Terminé !';
+                message2 = `Score: ${game.score}`;
+                
                 context.font = '50px ' + this.fontFamily;
                 context.fillText(message1, this.game.width * 0.5, this.game.height * 0.5 - 40);
                 context.font = '25px ' + this.fontFamily;
@@ -344,9 +378,10 @@ window.addEventListener('load', function(){
             this.ui = new UI(this)
             this.keys = [];
 
+            this.lifeNumber = 3;
             this.gameOver = false;
             this.score = 0;
-            this.winningScore = 10;
+            
             this.gameTime = 0;
             this.timeLimit = 10000;
             this.fpsTimer =0;
@@ -357,7 +392,7 @@ window.addEventListener('load', function(){
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
             this.init(); 
-
+             
             this.maxExplosions = 5;
             this.createObjectPool(this.explosionPool, this.maxExplosions, Explosion);
 
@@ -401,10 +436,22 @@ window.addEventListener('load', function(){
         }
 
         render(context, deltaTime){
+            // GAME OVER IF LIFE = 0
+            if (this.lifeNumber <= 0){
+                this.gameOver = true;
+                this.player.ingame = false;
+            }
+
+            // GAME OVER IF NO MORE ASTEROID
+            const asteroidLeft = this.asteroidPool.filter((astero) => astero.free === false).length;
+            if (asteroidLeft === 0) {
+                this.gameOver = true;
+                this.player.ingame = false;
+            }
+
             if (this.fpsTimer > 1000 / this.fps) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                // if(!this.gameOver) this.gameTime += deltaTime;
-                // if (this.gameTime >= this.timeLimit) this.gameOver = true;
+                 
                 this.asteroidPool.forEach(asteroid => {
                     asteroid.draw(context);
                     asteroid.update();
@@ -441,6 +488,19 @@ window.addEventListener('load', function(){
                 })
             })
         }
+        collisionPlayerAsterosLoop(){
+            if (!this.player.invincibility){
+                this.asteroidPool.forEach(astero=>{
+                    if (!astero.free && this.checkCollision(astero, this.player) && this.player.ingame){
+                        this.player.ingame = false;
+                        this.lifeNumber--;
+                        const explosion = this.getFreeObject(this.explosionPool);
+                        if (explosion) explosion.start(this.player.x,this.player.y, this.player.speed, this.player.angle);
+                        this.player.reset();
+                    }
+                })
+            }
+        }
     }
 
     const game = new Game(canvas)
@@ -451,6 +511,7 @@ window.addEventListener('load', function(){
         lastTime = timeStamp;
         game.render(ctx, deltaTime);
         game.collisionLoop();
+        game.collisionPlayerAsterosLoop();
         requestAnimationFrame(animate)
     }
     animate(0);
