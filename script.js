@@ -15,7 +15,8 @@ window.addEventListener('load', function(){
                 if ((   (e.key === 'ArrowUp') ||
                         (e.key === 'ArrowLeft') ||
                         (e.key === 'ArrowRight') ||
-                        (e.key === ' ')                
+                        (e.key === ' ') ||    
+                        (e.key === 's')           
                 ) && this.game.keys.indexOf(e.key) === -1) {
                     this.game.keys.push(e.key)
                 }
@@ -40,13 +41,13 @@ window.addEventListener('load', function(){
             this.friction = 0.99;
 
             this.ammo = 2;
-            this.maxAmmo = 10;
+            this.maxAmmo = 5;
 
             this.reloadTimer = 0
-            this.reloadInterval = 50;
+            this.reloadInterval = 400;
 
             this.shootingTimer = 0;
-            this.shootingInterval = 10;
+            this.shootingInterval = 60;
 
             this.x = this.game.width * 0.5;
             this.y = this.game.height * 0.5;
@@ -81,12 +82,12 @@ window.addEventListener('load', function(){
             }
         }
         update(deltaTime){
-
-            if (this.ingame) {
+            if (this.game.keys.includes('s')) this.invincibility = false;
+            if (this.ingame && !this.invincibility) {
                 // Sortie de l'écran, rerentre de l'autre côté
                 this.game.outOfScreenPosition(this, this.game);
 
-                if (this.game.keys.length > 0) this.invincibility = false;
+                
     
                 // Accélération du vaisseau
                 if (this.game.keys.indexOf('ArrowUp') > -1){
@@ -215,7 +216,9 @@ window.addEventListener('load', function(){
         constructor(game) {
             this.game = game;
             this.image = document.getElementById('asteroid');
+            this.size = 'big';
 
+            this.zoomCoef = 1;
             this.radius = 60;
             this.x = Math.random() * this.game.width;
             this.y = Math.random() * this.game.height;
@@ -227,14 +230,18 @@ window.addEventListener('load', function(){
             this.free = true;
             this.rotationAngle = 0;
             this.directionAngle= Math.random() * Math.PI * 2;
-            this.va = Math.random() * 0.04 - 0.02;
+            this.va = 0;
         }
         draw(context){
             if(!this.free){
                 context.save();
                 context.translate(this.x, this.y)
                 context.rotate(this.rotationAngle);
-                context.drawImage(this.image, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight *0.5, this.spriteWidth, this.spriteHeight);
+                context.drawImage(this.image, 0 - this.spriteWidth * 0.5 * this.zoomCoef, 0 - this.spriteHeight *0.5 * this.zoomCoef, this.spriteWidth * this.zoomCoef, this.spriteHeight * this.zoomCoef);
+                // context.strokeStyle = 'red'
+                // context.beginPath();
+                // context.arc(0, 0, this.radius, 0, Math.PI*2);
+                // context.stroke();
                 context.restore();
             }
         }
@@ -250,11 +257,27 @@ window.addEventListener('load', function(){
         }
         reset(){
             this.free = true;
+            this.radius = 60;
         }
-        start(){
+        start(x, y, angle, size){
             this.free = false;
-            this.x = Math.random() * this.game.width;
-            this.y = Math.random() * this.game.height;
+            this.x = x;
+            this.y = y;
+            this.directionAngle = angle;
+            this.size = size;
+            this.va = Math.random() * 0.04 - 0.02;
+            if (this.size === 'medium') {
+                this.zoomCoef = 0.6;
+                this.speed = 2;
+                this.va *= 5;
+                this.radius *= this.zoomCoef;
+            } else if (this.size === 'small') {
+                this.zoomCoef = 0.3;
+                this.speed = 4;
+                this.va *= 10;
+                this.radius *= this.zoomCoef;
+            }
+            
         }
     }
 
@@ -274,7 +297,7 @@ window.addEventListener('load', function(){
             this.maxFrame = 22;
             this.animationTimer = 0;
             this.animationInterval = 1000/80;
-            this.zoomCoef = 0.8;
+            this.zoomCoef = 1;
         }
         draw(context){
             if(!this.free){
@@ -302,7 +325,7 @@ window.addEventListener('load', function(){
         reset(){
             this.free = true;
         }
-        start(x, y, speed, angle){
+        start(x, y, speed, angle, zoom){
             this.free = false;
             this.x = x;
             this.y = y;
@@ -310,6 +333,7 @@ window.addEventListener('load', function(){
             this.frameY = Math.floor(Math.random() * 3);
             this.speed = speed;
             this.directionAngle = angle;
+            this.zoomCoef = zoom;
         }
     }
 
@@ -358,6 +382,16 @@ window.addEventListener('load', function(){
                 context.fillText(message2, this.game.width * 0.5, this.game.height * 0.5 + 40);
             }
 
+            // Press S to Strat
+            if (this.game.player.invincibility) {
+                let message1;
+                context.textAlign = 'center'
+                context.fillStyle = 'white'
+                message1 = "Appuyez sur 'S' pour commencer!";
+                context.font = '50px ' + this.fontFamily;
+                context.fillText(message1, this.game.width * 0.5, this.game.height * 0.5 - 80);
+            }
+
             context.restore();
         }
     }
@@ -387,8 +421,8 @@ window.addEventListener('load', function(){
             this.fpsTimer =0;
             this.fps = 80;
 
-           
-            this.maxAsteroids = 10;
+            this.nbrAsteroAtStart = 5;
+            this.maxAsteroids = 40;
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
             this.init(); 
@@ -421,9 +455,9 @@ window.addEventListener('load', function(){
         }
         
         init(){
-            for (let i = 0; i < this.maxAsteroids; i++){
+            for (let i = 0; i < this.nbrAsteroAtStart; i++){
                 const asteroid = this.getFreeObject(this.asteroidPool);
-                if (asteroid) asteroid.start();
+                if (asteroid) asteroid.start(Math.random() * this.width, Math.random() * this.height, Math.random() * Math.PI * 2, 'big');
             }
         }
         
@@ -476,14 +510,26 @@ window.addEventListener('load', function(){
             }
         }
         collisionLoop(){
+            const asteroidLeft = this.asteroidPool.filter((astero) => astero.free === false).length;
             this.asteroidPool.forEach(astero=>{
                 this.projectilePool.forEach(projecto=>{
                     if (!astero.free && !projecto.free && this.checkCollision(astero, projecto)) {
                         const explosion = this.getFreeObject(this.explosionPool);
-                        if (explosion) explosion.start(astero.x, astero.y, astero.speed * 0.5, astero.directionAngle);
+                        if (explosion) explosion.start(astero.x, astero.y, astero.speed * 0.5, astero.directionAngle, astero.zoomCoef);
+                        if (astero.size === 'big') {
+                            const asteroid1 = this.getFreeObject(this.asteroidPool);
+                            if (asteroid1) asteroid1.start(astero.x, astero.y, astero.directionAngle -1, 'medium');
+                            const asteroid2 = this.getFreeObject(this.asteroidPool);
+                            if (asteroid2) asteroid2.start(astero.x, astero.y, astero.directionAngle +1, 'medium');
+                        } else if (astero.size === 'medium') {
+                            const asteroid1 = this.getFreeObject(this.asteroidPool);
+                            if (asteroid1) asteroid1.start(astero.x, astero.y, astero.directionAngle -1, 'small');
+                            const asteroid2 = this.getFreeObject(this.asteroidPool);
+                            if (asteroid2) asteroid2.start(astero.x, astero.y, astero.directionAngle +1, 'small');
+                        }
                         astero.reset();
                         projecto.reset();
-                        this.score++
+                        this.score += 100 * asteroidLeft;
                     }
                 })
             })
@@ -495,7 +541,7 @@ window.addEventListener('load', function(){
                         this.player.ingame = false;
                         this.lifeNumber--;
                         const explosion = this.getFreeObject(this.explosionPool);
-                        if (explosion) explosion.start(this.player.x,this.player.y, this.player.speed, this.player.angle);
+                        if (explosion) explosion.start(this.player.x,this.player.y, this.player.speed, this.player.angle, 0.5);
                         this.player.reset();
                     }
                 })
