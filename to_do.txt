@@ -1,6 +1,6 @@
 --Régler les FPS pour que ça tourne à la même vitesse sur tous les pc. (NORMALEMENT C'EST BON MAIS A TESTER !)
 
---Ajouter l'effet de propulsion;
+-- Resize le game en fonction de l'écran;
 
 --Ajouter du son;
 

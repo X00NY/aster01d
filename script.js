@@ -32,6 +32,7 @@ window.addEventListener('load', function(){
     class Player {
         constructor(game){
             this.game = game;
+            
             this.bodyimage = document.getElementById('spaceship');
             this.flameImage = document.getElementById('flame')
             this.flameWidth = 40;
@@ -78,6 +79,7 @@ window.addEventListener('load', function(){
             }
             //Dessin des flammes
             if (this.game.keys.includes('ArrowUp' )&& !this.invincibility){
+                
                 context.save()
                 context.translate(this.x, this.y)
                 context.rotate(this.angle);
@@ -105,6 +107,7 @@ window.addEventListener('load', function(){
     
                 // Accélération du vaisseau
                 if (this.game.keys.indexOf('ArrowUp') > -1){
+                    //this.play();
                     if(this.speed < this.maxSpeed) {
                         this.thrust.x += this.acceleration * Math.cos(this.angle);
                         this.thrust.y += this.acceleration * Math.sin(this.angle);
@@ -156,6 +159,10 @@ window.addEventListener('load', function(){
             this.y += this.thrust.y;
             this.rotation = 0;
         }
+        play(){
+            this.sound = this.game.thrustSound;
+            this.sound.play();
+        }
         loosingLife(){
             this.ingame = false;
             this.game.lifeNumber--;
@@ -177,6 +184,8 @@ window.addEventListener('load', function(){
     class Projectile {
         constructor(game){
             this.game = game;
+
+            this.sound = this.game.laserSound;
             
             this.radius = 5;
 
@@ -214,6 +223,10 @@ window.addEventListener('load', function(){
                 this.distance += Math.hypot(this.speed * Math.cos(this.angle),this.speed * Math.sin(this.angle))
             }
         }
+        play(){
+            this.sound.currentTime=0;
+            this.sound.play();
+        }
         reset(){
             this.free = true;
         }
@@ -223,6 +236,7 @@ window.addEventListener('load', function(){
             this.free = false;
             this.x = this.game.player.x + Math.cos(this.angle) * this.game.player.radius;
             this.y = this.game.player.y + Math.sin(this.angle) * this.game.player.radius;
+            this.play();
         }
     }
 
@@ -298,6 +312,7 @@ window.addEventListener('load', function(){
     class Explosion {
         constructor(game){
             this.game = game;
+            this.sound = this.game.explosionSound;
             this.image = document.getElementById('explosion');
             this.x = 0;
             this.y = 0;
@@ -336,6 +351,10 @@ window.addEventListener('load', function(){
                 }
             }
         }
+        play(){
+            this.sound.currentTime = 0;
+            this.sound.play();
+        }
         reset(){
             this.free = true;
         }
@@ -348,6 +367,7 @@ window.addEventListener('load', function(){
             this.speed = speed;
             this.directionAngle = angle;
             this.zoomCoef = zoom;
+            this.play();
         }
     }
 
@@ -426,6 +446,10 @@ window.addEventListener('load', function(){
             this.ui = new UI(this)
             this.keys = [];
 
+            this.laserSound = document.getElementById("laserSound");
+            this.explosionSound = document.getElementById("explosionSound");
+            this.thrustSound = document.getElementById("thrustSound");
+
             this.lifeNumber = 3;
             this.gameOver = false;
             this.score = 0;
@@ -484,6 +508,7 @@ window.addEventListener('load', function(){
         }
 
         render(context, deltaTime){
+            
             // GAME OVER IF LIFE = 0
             if (this.lifeNumber <= 0){
                 this.gameOver = true;
