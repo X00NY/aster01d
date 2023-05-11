@@ -5,3 +5,5 @@
 --Ajouter du son;
 
 --Ajouter un bouton Restart
+
+--Corriger le bug de pertes de vies instantané

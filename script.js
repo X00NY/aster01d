@@ -79,7 +79,6 @@ window.addEventListener('load', function(){
             }
             //Dessin des flammes
             if (this.game.keys.includes('ArrowUp' )&& !this.invincibility){
-                
                 context.save()
                 context.translate(this.x, this.y)
                 context.rotate(this.angle);
@@ -107,11 +106,13 @@ window.addEventListener('load', function(){
     
                 // Accélération du vaisseau
                 if (this.game.keys.indexOf('ArrowUp') > -1){
-                    //this.play();
+                    this.play();
                     if(this.speed < this.maxSpeed) {
                         this.thrust.x += this.acceleration * Math.cos(this.angle);
                         this.thrust.y += this.acceleration * Math.sin(this.angle);
                     }
+                }else {
+                    this.pause();
                 }
     
                 // Virage à gauche
@@ -162,6 +163,11 @@ window.addEventListener('load', function(){
         play(){
             this.sound = this.game.thrustSound;
             this.sound.play();
+        }
+        pause(){
+            this.sound = this.game.thrustSound;
+            this.sound.pause();
+            this.sound.currentTime = 0;
         }
         loosingLife(){
             this.ingame = false;
@@ -367,7 +373,7 @@ window.addEventListener('load', function(){
             this.speed = speed;
             this.directionAngle = angle;
             this.zoomCoef = zoom;
-            this.play();
+            //this.play();
         }
     }
 
@@ -449,6 +455,7 @@ window.addEventListener('load', function(){
             this.laserSound = document.getElementById("laserSound");
             this.explosionSound = document.getElementById("explosionSound");
             this.thrustSound = document.getElementById("thrustSound");
+            this.hitSound = document.getElementById("hitSound");
 
             this.lifeNumber = 3;
             this.gameOver = false;
@@ -470,6 +477,11 @@ window.addEventListener('load', function(){
 
             this.maxProjectiles = 10;
             this.createObjectPool(this.projectilePool, this.maxProjectiles, Projectile);
+        }
+
+        play(sound){
+            sound.currentTime = 0;
+            sound.play()
         }
 
         createObjectPool(objectPool, maxObject, Object){
@@ -553,6 +565,7 @@ window.addEventListener('load', function(){
             this.asteroidPool.forEach(astero=>{
                 this.projectilePool.forEach(projecto=>{
                     if (!astero.free && !projecto.free && this.checkCollision(astero, projecto)) {
+                        this.play(this.explosionSound)
                         const explosion = this.getFreeObject(this.explosionPool);
                         if (explosion) explosion.start(astero.x, astero.y, astero.speed * 0.5, astero.directionAngle, astero.zoomCoef);
                         if (astero.size === 'big') {
@@ -577,6 +590,7 @@ window.addEventListener('load', function(){
             if (!this.player.invincibility){
                 this.asteroidPool.forEach(astero=>{
                     if (!astero.free && this.checkCollision(astero, this.player) && this.player.ingame){
+                        this.play(this.hitSound)
                         this.player.ingame = false;
                         this.lifeNumber--;
                         const explosion = this.getFreeObject(this.explosionPool);
