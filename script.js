@@ -33,6 +33,9 @@ window.addEventListener('load', function(){
         constructor(game){
             this.game = game;
             this.bodyimage = document.getElementById('spaceship');
+            this.flameImage = document.getElementById('flame')
+            this.flameWidth = 40;
+            this.flameHeight = 20;
             this.ingame = true;
             this.invincibility = true;
 
@@ -65,6 +68,7 @@ window.addEventListener('load', function(){
         }
 
         draw(context){
+            // Dessin du vaisseau
             if (this.ingame){
                 context.save()
                 context.translate(this.x, this.y)
@@ -72,6 +76,16 @@ window.addEventListener('load', function(){
                 context.drawImage(this.bodyimage, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight * 0.5, this.spriteWidth, this.spriteHeight)
                 context.restore()
             }
+            //Dessin des flammes
+            if (this.game.keys.includes('ArrowUp' )&& !this.invincibility){
+                context.save()
+                context.translate(this.x, this.y)
+                context.rotate(this.angle);
+                context.drawImage(this.flameImage, 0 - this.flameWidth * 0.5 -48, 0 - this.flameHeight * 0.5 - 20, this.flameWidth, this.flameHeight)
+                context.drawImage(this.flameImage, 0 - this.flameWidth * 0.5 -48, 0 - this.flameHeight * 0.5 + 20, this.flameWidth, this.flameHeight)
+                context.restore()
+            }
+            //Dessin de la zone d'invincibilité
             if (this.invincibility && !this.game.gameOver) {
                 context.save();
                 context.strokeStyle = 'red'
