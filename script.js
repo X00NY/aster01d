@@ -1,8 +1,8 @@
 window.addEventListener('load', function(){
     const canvas = this.document.getElementById('myCanvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = 1200;
-    canvas.height = 800;
+    canvas.width = this.window.innerWidth;
+    canvas.height = this.window.innerHeight - 130;
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 3;
     ctx.font = "20px Helvetica";
@@ -395,7 +395,7 @@ window.addEventListener('load', function(){
             context.fillText(`Score: ${game.score}` , 20, 35)
 
             // Lives
-            context.fillText(`Vies: ${game.lifeNumber}` , 1100, 35)
+            context.fillText(`Vies: ${game.lifeNumber}` , this.game.width -100, 35)
 
             // Munitions
             for (let i = 0 ; i < this.game.player.ammo; i++){
@@ -442,6 +442,7 @@ window.addEventListener('load', function(){
             this.canvas = canvas;
             this.width = this.canvas.width;
             this.height = this.canvas.height;
+            
 
             this.asteroidPool = [];
             this.explosionPool = [];
@@ -478,6 +479,8 @@ window.addEventListener('load', function(){
             this.maxProjectiles = 10;
             this.createObjectPool(this.projectilePool, this.maxProjectiles, Projectile);
         }
+
+        
 
         play(sound){
             sound.currentTime = 0;
