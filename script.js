@@ -38,7 +38,7 @@ window.addEventListener('load', function(){
             this.invincibility = true;
 
             this.turnSpeed = 3;
-            this.acceleration = 0.5;
+            this.acceleration = 1;
             this.friction = 0.99;
 
             this.ammo = 2;
@@ -59,7 +59,7 @@ window.addEventListener('load', function(){
 
             this.thrust = { x:0, y:0 };
             this.speed = 0;
-            this.maxSpeed = 3;
+            this.maxSpeed = 5;
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
 
@@ -72,16 +72,17 @@ window.addEventListener('load', function(){
                 context.translate(this.x, this.y)
                 context.rotate(this.angle);
                 context.drawImage(this.bodyimage, 0 - this.spriteWidth * 0.5, 0 - this.spriteHeight * 0.5, this.spriteWidth, this.spriteHeight)
+
                 context.restore()
-            }
-            //Dessin des flammes
-            if (this.game.keys.includes('ArrowUp' )&& !this.invincibility){
-                context.save()
-                context.translate(this.x, this.y)
-                context.rotate(this.angle);
-                context.drawImage(this.flameImage, 0 - this.flameWidth * 0.5 -48, 0 - this.flameHeight * 0.5 - 20, this.flameWidth, this.flameHeight)
-                context.drawImage(this.flameImage, 0 - this.flameWidth * 0.5 -48, 0 - this.flameHeight * 0.5 + 20, this.flameWidth, this.flameHeight)
-                context.restore()
+                //Dessin des flammes
+                if (this.game.keys.includes('ArrowUp' )&& !this.invincibility){
+                    context.save()
+                    context.translate(this.x, this.y)
+                    context.rotate(this.angle);
+                    context.drawImage(this.flameImage, 0 - this.flameWidth * 0.5 -48, 0 - this.flameHeight * 0.5 - 20, this.flameWidth, this.flameHeight)
+                    context.drawImage(this.flameImage, 0 - this.flameWidth * 0.5 -48, 0 - this.flameHeight * 0.5 + 20, this.flameWidth, this.flameHeight)
+                    context.restore()
+                }
             }
             //Dessin de la zone d'invincibilité
             if (this.invincibility && !this.game.gameOver) {
@@ -94,69 +95,76 @@ window.addEventListener('load', function(){
             }
         }
         update(deltaTime){
-            if (!this.game.keys.includes('ArrowUp')) this.pause();
-            if (this.game.keys.includes('s')) this.invincibility = false;
-            if (this.ingame && !this.invincibility) {
-                // Sortie de l'écran, rerentre de l'autre côté
-                this.game.outOfScreenPosition(this, this.game);
+            if (this.ingame) {
+                //Mise à jour de la position du vaisseau
+                this.speed = Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))
+                this.angle += this.rotation;
+                this.thrust.x *= this.friction; 
+                this.thrust.y *= this.friction;
+                this.x += this.thrust.x;
+                this.y += this.thrust.y;
+                this.rotation = 0;
 
-                
+                if (!this.game.keys.includes('ArrowUp')) this.pause();
+                if (this.game.keys.includes('s')) this.invincibility = false;
+                if (!this.invincibility) {
+                    // Sortie de l'écran, rerentre de l'autre côté
+                    this.game.outOfScreenPosition(this, this.game);
     
-                // Accélération du vaisseau
-                if (this.game.keys.indexOf('ArrowUp') > -1){
-                    this.play();
-                    if(this.speed < this.maxSpeed) {
-                        this.thrust.x += this.acceleration * Math.cos(this.angle);
-                        this.thrust.y += this.acceleration * Math.sin(this.angle);
+                    
+        
+                    // Accélération du vaisseau
+                    if (this.game.keys.indexOf('ArrowUp') > -1){
+                        this.play();
+                        if(this.speed < this.maxSpeed) {
+                            this.thrust.x += this.acceleration * Math.cos(this.angle);
+                            this.thrust.y += this.acceleration * Math.sin(this.angle);
+                        }
+                    }else {
+                        this.pause();
                     }
-                }else {
-                    this.pause();
+        
+                    // Virage à gauche
+                    if (this.game.keys.indexOf('ArrowLeft') > -1){
+                        this.rotation += -this.turnSpeed /180 * Math.PI;
+                    }
+        
+                    // Virage à droite
+                    if (this.game.keys.indexOf('ArrowRight') > -1){
+                        this.rotation += this.turnSpeed /180 * Math.PI;
+                    }
+        
+                    // Lancer un projectile
+                    if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot) && (this.ammo > 0)) {
+                        this.allowToShoot = false;
+                        this.shootingTimer = 0;
+                        this.ammo--;
+                        const projectile = this.game.getFreeObject(this.game.projectilePool);
+                        if(projectile) projectile.start();
+                    }
+        
+                    // Gestion de la vitesse d'attaque
+                    if(this.shootingTimer > this.shootingInterval){
+                        this.allowToShoot = true;
+                        this.shootingTimer = 0;
+                    } else {
+                        this.shootingTimer += deltaTime;
+                    }
+        
+                    // Gestion de la vitesse de recharge
+                    if(this.reloadTimer > this.reloadInterval){ 
+                        if(this.ammo < this.maxAmmo)this.ammo++;
+                        this.reloadTimer = 0;
+                    } else {
+                        this.reloadTimer += deltaTime;
+                    }
+        
                 }
-    
-                // Virage à gauche
-                if (this.game.keys.indexOf('ArrowLeft') > -1){
-                    this.rotation += -this.turnSpeed /180 * Math.PI;
-                }
-    
-                // Virage à droite
-                if (this.game.keys.indexOf('ArrowRight') > -1){
-                    this.rotation += this.turnSpeed /180 * Math.PI;
-                }
-    
-                // Lancer un projectile
-                if ( (this.game.keys.indexOf(' ') > -1) && (this.allowToShoot) && (this.ammo > 0)) {
-                    this.allowToShoot = false;
-                    this.shootingTimer = 0;
-                    this.ammo--;
-                    const projectile = this.game.getFreeObject(this.game.projectilePool);
-                    if(projectile) projectile.start();
-                }
-    
-                // Gestion de la vitesse d'attaque
-                if(this.shootingTimer > this.shootingInterval){
-                    this.allowToShoot = true;
-                    this.shootingTimer = 0;
-                } else {
-                    this.shootingTimer += deltaTime;
-                }
-    
-                // Gestion de la vitesse de recharge
-                if(this.reloadTimer > this.reloadInterval){ 
-                    if(this.ammo < this.maxAmmo)this.ammo++;
-                    this.reloadTimer = 0;
-                } else {
-                    this.reloadTimer += deltaTime;
-                }
-    
+                
+
+            } else {
+                this.pause();
             }
-            //Mise à jour de la position du vaisseau
-            this.speed = Math.hypot(Math.abs(this.thrust.x), Math.abs(this.thrust.y))
-            this.angle += this.rotation;
-            this.thrust.x *= this.friction; 
-            this.thrust.y *= this.friction;
-            this.x += this.thrust.x;
-            this.y += this.thrust.y;
-            this.rotation = 0;
         }
         play(){
             this.sound = this.game.thrustSound;
@@ -371,7 +379,6 @@ window.addEventListener('load', function(){
             this.speed = speed;
             this.directionAngle = angle;
             this.zoomCoef = zoom;
-            //this.play();
         }
     }
 
@@ -465,10 +472,8 @@ window.addEventListener('load', function(){
             
             this.gameTime = 0;
             this.timeLimit = 10000;
-            this.fpsTimer =0;
-            this.fps = 80;
 
-            this.nbrAsteroAtStart = 5;
+            this.nbrAsteroAtStart = 1;
             this.maxAsteroids = 40;
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
@@ -537,9 +542,7 @@ window.addEventListener('load', function(){
                 this.gameOver = true;
                 this.player.ingame = false;
             }
-
-            if (this.fpsTimer > 1000 / this.fps) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
                  
                 this.asteroidPool.forEach(asteroid => {
                     asteroid.draw(context);
@@ -557,12 +560,6 @@ window.addEventListener('load', function(){
                 this.player.update(deltaTime);
     
                 this.ui.draw(context);
-
-                this.fpsTimer = 0;
-
-            } else {
-                this.fpsTimer += deltaTime;
-            }
         }
         collisionLoop(){
             const asteroidLeft = this.asteroidPool.filter((astero) => astero.free === false).length;
@@ -599,7 +596,9 @@ window.addEventListener('load', function(){
                         this.lifeNumber--;
                         const explosion = this.getFreeObject(this.explosionPool);
                         if (explosion) explosion.start(this.player.x,this.player.y, this.player.speed, this.player.angle, 0.5);
-                        this.player.reset();
+                        setTimeout(()=> {
+                            this.player.reset();
+                        },2000)
                     }
                 })
             }
@@ -608,7 +607,7 @@ window.addEventListener('load', function(){
     const game = new Game(canvas)
 
     var pause = false
-    var fps = 60;
+    var fps = 30;
     var fpsInterval, startTime, now, then, elapsed;
 
     startAnimating(fps);
