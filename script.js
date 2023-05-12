@@ -473,7 +473,7 @@ window.addEventListener('load', function(){
             this.gameTime = 0;
             this.timeLimit = 10000;
 
-            this.nbrAsteroAtStart = 1;
+            this.nbrAsteroAtStart = 5;
             this.maxAsteroids = 40;
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
