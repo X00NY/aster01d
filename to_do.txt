@@ -1,9 +1,11 @@
---Régler les FPS pour que ça tourne à la même vitesse sur tous les pc. (NORMALEMENT C'EST BON MAIS A TESTER !)
+--Resize le game en fonction de l'écran dynamiquement;
 
---Resize le game en fonction de l'écran;
+--Invincibilité 3 secondes plutot que S
+
+--Ecran d'accueil avec zik
 
 --Ajouter un bouton Restart
 
 --Corriger le bug de pertes de vies instantané
 
---Gestion du highscore
+--Gestion du highscore local

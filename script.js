@@ -2,11 +2,8 @@ window.addEventListener('load', function(){
     const canvas = this.document.getElementById('myCanvas');
     const ctx = canvas.getContext('2d');
     canvas.width = this.window.innerWidth;
-    canvas.height = this.window.innerHeight - 130;
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 3;
-    ctx.font = "20px Helvetica";
-    ctx.fillStyle = 'white';
+    canvas.height = this.window.innerHeight;
+    
 
     class InputHandler {
         constructor(game) {
@@ -97,6 +94,7 @@ window.addEventListener('load', function(){
             }
         }
         update(deltaTime){
+            if (!this.game.keys.includes('ArrowUp')) this.pause();
             if (this.game.keys.includes('s')) this.invincibility = false;
             if (this.ingame && !this.invincibility) {
                 // Sortie de l'écran, rerentre de l'autre côté
@@ -387,6 +385,9 @@ window.addEventListener('load', function(){
 
         draw(context) {
             context.save();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = 'white';
             context.shadowOffsetX = 2;
             context.shadowOffsetY = 2;
             context.shadowColor = 'black';
@@ -604,18 +605,34 @@ window.addEventListener('load', function(){
             }
         }
     }
-
     const game = new Game(canvas)
-    
-    let lastTime = 0;
-    function animate(timeStamp){
-        const deltaTime = timeStamp - lastTime;
-        lastTime = timeStamp;
-        game.render(ctx, deltaTime);
-        game.collisionLoop();
-        game.collisionPlayerAsterosLoop();
-        requestAnimationFrame(animate)
+
+    var pause = false
+    var fps = 60;
+    var fpsInterval, startTime, now, then, elapsed;
+
+    startAnimating(fps);
+
+    function startAnimating(fps) {
+        fpsInterval = 1000 / fps;
+        then = window.performance.now();
+        startTime = then;
+        animate();
     }
-    animate(0);
-    
+
+    // let lastTime = 0;
+    function animate(timeStamp){
+        if (pause) {
+            return;
+        }
+        requestAnimationFrame(animate);
+        now = timeStamp;
+        elapsed = now - then;
+        if (elapsed > fpsInterval) {
+            then = now - (elapsed % fpsInterval);
+            game.render(ctx, elapsed);
+            game.collisionLoop();
+            game.collisionPlayerAsterosLoop();
+        }
+    }
 })
