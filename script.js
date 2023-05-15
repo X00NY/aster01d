@@ -34,6 +34,7 @@ window.addEventListener('load', function(){
             this.flameImage = document.getElementById('flame')
             this.flameWidth = 40;
             this.flameHeight = 20;
+
             this.ingame = true;
             this.invincibility = true;
 
@@ -45,10 +46,10 @@ window.addEventListener('load', function(){
             this.maxAmmo = 5;
 
             this.reloadTimer = 0
-            this.reloadInterval = 400;
+            this.reloadInterval = 1000;
 
             this.shootingTimer = 0;
-            this.shootingInterval = 60;
+            this.shootingInterval = 400;
 
             this.x = this.game.width * 0.5;
             this.y = this.game.height * 0.5;
@@ -190,6 +191,9 @@ window.addEventListener('load', function(){
             this.angle = 270/180*Math.PI;
             this.rotation = 0;
             this.invincibility = true;
+            setTimeout(()=>{
+                this.invincibility = false;
+            },3000)
         }
     }
 
@@ -297,6 +301,7 @@ window.addEventListener('load', function(){
         }
         reset(){
             this.free = true;
+            this.size = 'big'
             this.radius = 60;
         }
         start(x, y, angle, size){
@@ -315,6 +320,10 @@ window.addEventListener('load', function(){
                 this.zoomCoef = 0.3;
                 this.speed = 4;
                 this.va *= 10;
+                this.radius *= this.zoomCoef;
+            } else {
+                this.zoomCoef = 1;
+                this.speed = 1;
                 this.radius *= this.zoomCoef;
             }
             
@@ -465,6 +474,7 @@ window.addEventListener('load', function(){
             this.explosionSound = document.getElementById("explosionSound");
             this.thrustSound = document.getElementById("thrustSound");
             this.hitSound = document.getElementById("hitSound");
+            this.music = document.getElementById("music");
 
             this.lifeNumber = 3;
             this.gameOver = false;
@@ -474,7 +484,7 @@ window.addEventListener('load', function(){
             this.timeLimit = 10000;
 
             this.nbrAsteroAtStart = 5;
-            this.maxAsteroids = 40;
+            this.maxAsteroids = 50;
             this.createObjectPool(this.asteroidPool, this.maxAsteroids, Asteroid);
 
             this.init(); 
@@ -539,8 +549,10 @@ window.addEventListener('load', function(){
             // GAME OVER IF NO MORE ASTEROID
             const asteroidLeft = this.asteroidPool.filter((astero) => astero.free === false).length;
             if (asteroidLeft === 0) {
-                this.gameOver = true;
-                this.player.ingame = false;
+                // this.gameOver = true;
+                // this.player.ingame = false;
+                this.nbrAsteroAtStart++
+                this.init()
             }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
                  
@@ -605,6 +617,8 @@ window.addEventListener('load', function(){
         }
     }
     const game = new Game(canvas)
+    game.music.volume=0.15;
+    game.music.play();
 
     var pause = false
     var fps = 30;
@@ -619,7 +633,6 @@ window.addEventListener('load', function(){
         animate();
     }
 
-    // let lastTime = 0;
     function animate(timeStamp){
         if (pause) {
             return;
